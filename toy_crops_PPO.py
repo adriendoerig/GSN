@@ -42,7 +42,7 @@ n_image_classes = train_labels.shape[1]  # number of image types to classify
 # visual system parameters
 vis_net = 'convlstm'
 crop_size = (9, 9, 1)
-class_lr = 1e-2
+class_lr = 1e-3
 class_first_decay_steps = 1000
 
 # RL agent parameters

@@ -47,7 +47,6 @@ def ppo_training_step(states_batch, saccade_generator, old_logprobs, returns, ad
     return ppo_loss, actor_loss, critic_loss, entropy_loss
 
 
-
 def train_GSNs(visual_system, saccade_generator, readout_layer, timesteps, init_fix_pos,
                train_images, train_labels, train_mean, train_std, data_augment,
                n_img_epochs, img_batch_size, n_ppo_epochs, ppo_buffer_size, ppo_batch_size, only_last_loss, binary_reward,
