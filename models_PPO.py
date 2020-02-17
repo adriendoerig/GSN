@@ -48,7 +48,7 @@ def get_visual_system_model(img_shape, batch_size, n_output_units, optimizer, lo
     return model, ckpt_dict
 
 
-def get_saccade_actor_model(input_state_shape, optimizer, n_actions, model_name, RUN_ID=''):
+def get_saccade_actor_model(input_state_shape, n_hidden, optimizer, n_actions, model_name, RUN_ID=''):
     # there iares only 2 output neuron, determining the (x,y) mean of a 2D gaussian in [-1,1]x[-1,1]
 
     activation_fn = 'elu'
@@ -70,7 +70,8 @@ def get_saccade_actor_model(input_state_shape, optimizer, n_actions, model_name,
     elif 'fully_connected' in model_name.lower():
         model = tf.keras.Sequential([tf.keras.layers.InputLayer(input_shape=input_state_shape[-3:]),  # x,y,channels -> the point is that we don't take the "time" dimension of convLSTM
                                      tf.keras.layers.Flatten(),
-                                     tf.keras.layers.Dense(512, activation=activation_fn),
+                                     tf.keras.layers.Dense(n_hidden, activation=activation_fn),
+                                     tf.keras.layers.Dense(n_hidden, activation=activation_fn),
                                      tf.keras.layers.Dense(n_actions, activation=output_activation_fn)])
     else:
         raise Exception('model_name {} is not understood. Please use "convlstm", "cnn" or "dense"')
@@ -87,7 +88,7 @@ def get_saccade_actor_model(input_state_shape, optimizer, n_actions, model_name,
     return model, ckpt_dict
 
 
-def get_saccade_critic_model(input_state_shape, optimizer, model_name, RUN_ID=''):
+def get_saccade_critic_model(input_state_shape, n_hidden, optimizer, model_name, RUN_ID=''):
     # there is a single output neuron, representing the q_value
 
     activation_fn = 'elu'
@@ -109,7 +110,8 @@ def get_saccade_critic_model(input_state_shape, optimizer, model_name, RUN_ID=''
     elif 'fully_connected' in model_name.lower():
         model = tf.keras.Sequential([tf.keras.layers.InputLayer(input_shape=input_state_shape[-3:]),  # x,y,channels
                                      tf.keras.layers.Flatten(),
-                                     tf.keras.layers.Dense(512, activation=activation_fn),
+                                     tf.keras.layers.Dense(n_hidden, activation=activation_fn),
+                                     tf.keras.layers.Dense(n_hidden, activation=activation_fn),
                                      tf.keras.layers.Dense(1, activation=output_activation_fn)])
     else:
         raise Exception('model_name {} is not understood. Please use "convlstm", "cnn" or "dense"')
@@ -205,7 +207,8 @@ class SaccadeGenerator:
             entropy = tf.squeeze(prob_dist.entropy())
         else:
             action_probs = self.actor_network(state)
-            action = tf.random.categorical(action_probs, 1)
-            log_probs = tf.math.log(action_probs + 1e-10)
-            entropy = -tf.reduce_sum(action_probs * tf.math.log(action_probs + 1e-10), axis=-1)
-        return action, log_probs, entropy
+            action = tf.squeeze(tf.random.categorical(action_probs, 1))
+            log_prob = tf.math.log(action_probs[0, action] + 1e-10)  # NEW tf.math.log(action_probs + 1e-10)
+            observed_log_probs = tf.math.log(action_probs + 1e-10)  # NEW line
+            entropy = -tf.reduce_sum(action_probs * observed_log_probs)  # NEW: didn't have observed_log_probs before
+        return action, log_prob, observed_log_probs, entropy

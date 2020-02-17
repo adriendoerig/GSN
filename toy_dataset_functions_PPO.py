@@ -166,13 +166,14 @@ def plot_fix_heatmap(visual_system, saccade_generator, timesteps, state_shape, i
             for t in range(timesteps):
                 # take action
                 old_state = visual_system.state if visual_system.state is not None else np.random.normal(0, .1, (state_shape))  # Store current state
-                action, _, _ = saccade_generator.get_action_log_prob_and_entropy(old_state)  # Query agent for the next action
+                action, _, _, _ = saccade_generator.get_action_log_prob_and_entropy(old_state)  # Query agent for the next action
                 prediction, new_state, accurate, pred_loss, center_bias_loss, new_img, new_fix_pos = visual_system.take_action(img, tf.keras.utils.to_categorical(label, n_labels), action, train_mean, train_std)  # Take action, get new state and reward (the mean and std are for normalizing)
                 heatmaps[label, new_fix_pos[0], new_fix_pos[1]] += 1
         visual_system.network.reset_states()
         ax[label//(n_labels//2)][label%(n_labels//2)].imshow(30 * heatmaps[label], cmap='inferno', norm=mplt.colors.Normalize(vmin=0, vmax=1))
         ax[label//(n_labels//2)][label%(n_labels//2)].imshow(mean_imgs[label, :, :, 0], cmap='gray', norm=mplt.colors.Normalize(vmin=0, vmax=1), alpha=.5)
     plt.savefig(save_path)
+    plt.close()
 
 
 def plot_fix_path(visual_system, saccade_generator, timesteps, state_shape, init_fix_pos, imgs, one_hot_labels, train_mean, train_std, save_path):
@@ -187,7 +188,7 @@ def plot_fix_path(visual_system, saccade_generator, timesteps, state_shape, init
         for t in range(timesteps):
             # take action
             old_state = visual_system.state if visual_system.state is not None else np.random.normal(0, .1, (state_shape))  # Store current state
-            action, _, _ = saccade_generator.get_action_log_prob_and_entropy(old_state)  # Query agent for the next action
+            action, _, _, _ = saccade_generator.get_action_log_prob_and_entropy(old_state)  # Query agent for the next action
             prediction, new_state, accurate, pred_loss, center_bias_loss, new_img, new_fix_pos = visual_system.take_action(img, one_hot_labels, action, train_mean, train_std)  # Take action, get new state and reward (the mean and std are for normalizing)
             fixations[i, t, :] = new_fix_pos
 
@@ -197,3 +198,4 @@ def plot_fix_path(visual_system, saccade_generator, timesteps, state_shape, init
         ax[i // sqrt_imgs][i % sqrt_imgs].imshow(imgs[i, :, :, 0])
         ax[i // sqrt_imgs][i % sqrt_imgs].plot(fixations[i, :, 1], fixations[i, :, 0], 'ro-', alpha=0.5)
     plt.savefig(save_path)
+    plt.close()
