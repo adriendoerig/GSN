@@ -18,7 +18,7 @@ from toy_dataset_functions_PPO import make_toy_dataset, make_random_crop_sequenc
 ########################################################################################################################
 
 # choose what to run
-RUN_N = 4
+RUN_N = 0
 do_training = 1
 do_testing = 1
 
@@ -97,12 +97,12 @@ if do_testing:
         if random_fixations:
             # define randomly connected (i.e., untrained) neural network models (one for the visual system, one for the saccade generator reinforcement learning)
             random_visual_system_model, _ = get_visual_system_model(crop_size, 1, n_image_classes, class_optimizer, classification_loss, 'random_'+vis_net, use_efference_copy)  # we take one frame at a time in stateful mode (i.e., process frames one at a time, but keeping the network state between frames)
-            random_saccade_actor, _ = get_saccade_actor_model(state_shape, RL_optimizer, n_actions, 'random_'+sac_net+'_actor')
-            saccade_critic, saccade_critic_ckpt_dict = get_saccade_critic_model(state_shape, RL_optimizer, 'random_'+sac_net+'_critic')
+            random_saccade_actor, _ = get_saccade_actor_model(state_shape, n_hidden_units, RL_optimizer, n_actions, 'random_'+sac_net+'_actor')
+            saccade_critic, saccade_critic_ckpt_dict = get_saccade_critic_model(state_shape, n_hidden_units, RL_optimizer, 'random_'+sac_net+'_critic')
 
             # define the visual system and saccade generator (they are instances of classes in helper_functions.py)
-            random_visual_system = VisualSystem(visual_system_model, use_efference_copy, init_fix_pos(), crop_size, img_size, classification_loss, n_actions, action_coding, alpha_center_bias=0)
-            random_saccade_generator = SaccadeGenerator(saccade_actor, saccade_critic, n_actions, sigma)
+            random_visual_system = VisualSystem(visual_system_model, use_efference_copy, class_optimizer, init_fix_pos(), crop_size, img_size, classification_loss, n_actions, action_coding, alpha_center_bias=0)
+            random_saccade_generator = SaccadeGenerator(saccade_actor, saccade_critic, RL_optimizer, n_actions, sigma)
 
             test_accuracies.append(test_GSNs(random_fixations, visual_system, saccade_generator, readout_layer, timesteps, init_fix_pos,
               test_images, test_labels, train_mean, train_std,

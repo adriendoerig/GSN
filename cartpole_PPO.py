@@ -6,7 +6,6 @@ def get_model_actor_simple(input_state_shape, n_actions):
     activation_fn = 'elu'
     output_activation_fn = 'softmax'
     model = tf.keras.Sequential([tf.keras.layers.InputLayer(input_shape=input_state_shape),
-                                 # x,y,channels -> the point is that we don't take the "time" dimension of convLSTM
                                  tf.keras.layers.Flatten(),
                                  tf.keras.layers.Dense(16, activation=activation_fn),
                                  tf.keras.layers.Dense(16, activation=activation_fn),
@@ -19,7 +18,6 @@ def get_model_critic_simple(input_state_shape):
     activation_fn = 'elu'
     output_activation_fn = None
     model = tf.keras.Sequential([tf.keras.layers.InputLayer(input_shape=input_state_shape),
-                                 # x,y,channels -> the point is that we don't take the "time" dimension of convLSTM
                                  tf.keras.layers.Flatten(),
                                  tf.keras.layers.Dense(16, activation=activation_fn),
                                  tf.keras.layers.Dense(16, activation=activation_fn),
@@ -41,7 +39,7 @@ def get_advantages(values, rewards, masks, gamma, lmbda):
 
 
 def ppo_loss_fn(oldpolicy_logprobs, newpolicy_logprobs, newpolicy_entropy, advantages, returns, new_values, clipping_val, alpha_critic_loss, alpha_entropy_loss):
-    policies_logprob_diff = newpolicy_logprobs - oldpolicy_logprobs  # NEW [newpolicy_logprobs[i]-oldpolicy_logprobs[i] for i in range(len(newpolicy_logprobs))]
+    policies_logprob_diff = newpolicy_logprobs - oldpolicy_logprobs
     ratio = tf.math.exp(policies_logprob_diff)
     p1 = ratio * advantages
     p2 = tf.clip_by_value(ratio, clip_value_min=1-clipping_val, clip_value_max=1+clipping_val) * advantages
@@ -61,7 +59,7 @@ def ppo_training_step(states_batch, actor_network, critic_network, optimizer, ol
         actions = tf.random.categorical(action_probs, 1) # NEW line
         indices = np.concatenate((np.expand_dims(np.arange(action_probs.shape[0]), axis=0).T, actions), axis=1)  # this line and the next are equivalent to new_probs = action_probs[actions] in numpy...
         new_probs = tf.expand_dims(tf.gather_nd(action_probs, indices), axis=1)
-        new_logprobs = tf.math.log(new_probs + 1e-10)  # NEW tf.math.log(action_probs + 1e-10)
+        new_logprobs = tf.math.log(new_probs + 1e-10)
         new_entropies = -tf.reduce_sum(action_probs * tf.math.log(action_probs + 1e-10), axis=-1)
         new_values = critic_network(states_batch)
 
@@ -88,7 +86,6 @@ def test_reward():
         state_input = np.expand_dims(state, 0)
         action_probs = actor_network(state_input)
         action = np.argmax(action_probs)
-        # value = tf.squeeze(critic_network(state_input))
         next_state, reward, done, _ = env.step(action)
         state = next_state
         total_reward += reward
@@ -105,7 +102,7 @@ def test_reward():
 
 do_training = 1
 
-RUN_ID = 8
+RUN_ID = 0
 
 task = "CartPole-v1"
 env = gym.make(task)
@@ -173,9 +170,9 @@ if do_training:
 
             action_probs = actor_network(state_input)
             action = tf.squeeze(tf.random.categorical(action_probs, 1))
-            old_log_probs[itr] = tf.math.log(action_probs[0, action] + 1e-10)  # NEW tf.math.log(action_probs + 1e-10)
-            observed_log_probs = tf.math.log(action_probs + 1e-10)  # NEW line
-            entropies[itr] = -tf.reduce_sum(action_probs * observed_log_probs)  # NEW: didn't have observed_log_probs before
+            old_log_probs[itr] = tf.math.log(action_probs[0, action] + 1e-10)
+            observed_log_probs = tf.math.log(action_probs + 1e-10)
+            entropies[itr] = -tf.reduce_sum(action_probs * observed_log_probs)
 
             state, rewards[itr], done, info = env.step(action.numpy())
             masks[itr] = not done
